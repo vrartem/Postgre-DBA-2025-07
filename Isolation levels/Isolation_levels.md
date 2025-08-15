@@ -1,16 +1,25 @@
-- Установил WSL и Docker Desktop
-- Проверяю наличие установленного докера:
+- Для подлючения использую DBeaver и PGAdmin
 
-- Создаю каталог /var/lib/postgres:
+- Проверяю текущий уровень изоляции:
 
-- Развертываю контейнер с PostgreSQL 17 смонтировав в /var/lib/postgresql
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Isolation%20levels/Screenshot%202025-08-15%20132134.png)
 
-- Развернул контейнер с клиентом postgres, подключился из контейнера с клиентом к контейнеру с сервером, выполнил селект ранее вставленной записи в test:
+- Между двумя подключениями проверяем транзакции на текущем уровне изоляции (Read Сommitted).
 
+  Выполняю последовательность из инструкции:
+  ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Isolation%20levels/READ_COMMITTED.png)
 
-- Подключился к контейнеру через DBeaver:
+  ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Isolation%20levels/READ_COMMITTED_1.1.png)
 
+- В Read Сommitted первая транзакция не может читать еще не зафиксированные изменения в другой транзакции, после (COMMIT) изменения будут видны для первой транзакции (Да для Неповторяющееся чтение). 
 
-- Удалил контейнер с сервером и создал заново, все данные на месте:
+- Пробуем для repeatable read:
+
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Isolation%20levels/Screenshot%202025-08-15%20140719.png)
+
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Isolation%20levels/Screenshot%202025-08-15%20160225.png)
+
+- Для Repeatable Read будет тоже самое, только изменения будут доступны после (COMMIT) первой и второй транзакции. (Нет для Неповторяющееся чтение)
+
 
 
