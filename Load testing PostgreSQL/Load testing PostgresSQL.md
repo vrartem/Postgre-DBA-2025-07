@@ -6,7 +6,8 @@
   ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Load%20testing%20PostgreSQL/5.2.png)  
 
 - Настройка кластера PostgreSQL
-Применяю настройки
+Применяю настройки, которые подобрал при помощи https://pgtune
+```
 -- DB Version: 17
 -- OS Type: linux
 -- DB Type: web
@@ -49,8 +50,11 @@ ALTER SYSTEM SET
  max_parallel_workers = '6';
 ALTER SYSTEM SET
  max_parallel_maintenance_workers = '3';
+```
 
-- Инициализация pgbench
+- Делаю рестарт кластера и запускаю проверку
+  ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Load%20testing%20PostgreSQL/5.3.png)
 
-- Запуск pgbench
+- Лучший результат который удалось получить
+  ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Load%20testing%20PostgreSQL/5.6.png)
 
