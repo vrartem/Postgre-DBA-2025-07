@@ -10,6 +10,10 @@
 
 ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.4.png)
 
+При применении предоставленных настроек количество tps получаю меньше. 
+Это может быть связано с тем, что avtovacuum стал давать допонительную нагрузку.
+На это могли повлиять настройки maintenance_work_mem, min\max_wal_size, wal_buffers
+
 - Создал и заполнил таблицу, вывел размер:
 
 ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.5.png)
