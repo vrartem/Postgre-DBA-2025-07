@@ -12,7 +12,8 @@
 ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/journals/7.5.png)
 ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/journals/7.6.png)
 
-вижу дельту в 30с, создаются файлы, похоже потом переписываются и в конечном итоге будет один файл
+Вижу, что через каждые 30с запускался checkpoint, за 10мин должно было выпонится 20 чекпоинтов.
+Каждый Wal файл размером по 16мб. Общий объем 320мб.
 
 - Запускою PGBENCH в асинхронном режиме synchronous_commit=off
 
@@ -25,3 +26,6 @@
 - Правлю таблицу и пробую:
 
 ![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/journals/7.9.png)
+
+После модификации таблицы crc сумма не проходит проверку.
+Проигнорировать ошибку можно установив заначение "on" для ignore_checksum_failure
