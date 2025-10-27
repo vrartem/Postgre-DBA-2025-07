@@ -1,28 +1,34 @@
-- Инициализация pgbench
+- Меняю настройки log_lock_waits и deadlock_timeout
 
-![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.2.png)
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Blocking/8.png)
 
-- Применил настройки и запустил pgbench:
+- Создаю новую талбицу, вставляю несколько записей и симулирую блокировку.
 
-![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.3.png)
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Blocking/8.1.png)
 
-- Сделал RESET и запустил повторно:
+- Проверяю логи, вижу записи блокировок:
 
-![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.4.png)
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Blocking/8.2.png)
 
-- Создал и заполнил таблицу, вывел размер:
+- Выполнил update в трех сессиях и вывел информацию из pg_locks в удобном виде:
 
-![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.5.png)
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Blocking/8.3.png)
 
-- Количество метрвых строк после update:
+Видно, что процесс 10726 заблокировал таблицу в RowExclusiveLock, процесс 10672 ожидает 10726, а процесс 10721 ожидает 10672
+RowExclusiveLock блокировка на уровне таблицы
+ExclusiveLock блокировка на уровне строки
 
-![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.6.png)
+- Делаю взаимоблокировку трех транзакций и вижу ошибку в psql
 
-- Проверяю повторно:
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Blocking/8.4.png)
 
-![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.7.png)
+Если проанализировать лог, то можно увидеть, что происходило с таблицей, какие запросы выполнялись, какие пороцессы ожидают друг друга.
 
-- Еще раз делаю update выключаю autovacuum и снова update, видим, что размер увеличился:
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Blocking/8.5.png)
 
-![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Autovacuum/6.8.png)
+- Могут ли две транзакции, выполняющие единственную команду UPDATE одной и той же таблицы (без where), заблокировать друг друга?
+
+Cначала будет заблокирована таблица для первой транзакции, после commit, будет выполнен update из другой транзакции. 
+
+
 
