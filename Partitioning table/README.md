@@ -1,13 +1,17 @@
-### 1. Выбираю таблицу для секционирования bookings.bookings из db demo
+### Выбираю таблицу для секционирования bookings.bookings из db demo
+
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Partitioning%20table/11.1.png)
 
 Хотя база всего за 3 месяца в таблце уже 1292893 записей.
 book_date хорошо подходит в качестве ключа секционирования.
-Запросы по диапазону дат будут затрагивать несколько партиций вместо миллионов строк всей таблицы.
+Запросы по диапазону дат могут затрагивать несколько партиций вместо миллионов строк всей таблицы.
 
-### 2. Определяю тип секционирования
+### Определяю тип секционирования
 Буду секциоанировать таблицу по book_date с типом секционирования range по месяцам.
 
-Результат:
+Создаю главную таблицу и партиции:
+
+![](https://raw.githubusercontent.com/vrartem/Postgre-DBA-2025-07/refs/heads/main/Partitioning%20table/11.2.png)
 
 
 
@@ -20,7 +24,6 @@ INSERT 0 1292893
 
 ### Проверяю распределение
 ```
--- 5. Проверяем распределение
 demo=# select date_part('year',book_date),date_part('month',book_date),count(*)
 from bookings.bookings_new
 group by date_part('year',book_date),date_part('month',book_date)
