@@ -24,7 +24,8 @@ sudo systemctl status postgresql
 ```
 ### Проверка статуса 
 ```sudo systemctl status postgresql```
-![](https://github.com/vrartem/Postgre-DBA-2025-07/blob/main/Project/2025-11-06%20173406.png) 
+
+![](https://github.com/vrartem/Postgre-DBA-2025-07/blob/main/Project/1.png) 
 
 ### Установка пароля для пользователя postgres
 ```
@@ -134,7 +135,7 @@ SELECT PostGIS_full_version();
 POSTGIS="3.4.2 c19ce56" [EXTENSION] PGSQL="160" GEOS="3.12 …
 ```
 
-## Порт 5432 закрыт, необходимо его открыть
+### Порт 5432 закрыт, необходимо его открыть
 
 Открываю:
 ```
@@ -234,8 +235,59 @@ for ARCHIVE in "$UPLOADS_DIR"/*.zip; do
 done
 
 echo "Импорт завершён. Лог: $LOG_FILE" | tee -a "$LOG_FILE"
+```
+
+## Создание наблюдателя за папкой
+
+Будет запускаться скрипт import_shp_new.sh при добавлении архива в папку
+
+Установка:
 
 ```
+sudo apt install inotify-tools
+```
+Логика наблюдателя:
+
+```
+nano /usr/local/bin/watch_upload.sh
+
+#!/bin/bash
+
+WATCH_DIR="/home/sftpuser/uploads"
+IMPORT_SCRIPT="/home/sftpuser/import_shp_new.sh"
+LOG_FILE="/var/log/upload_watcher.log"
+
+echo "Наблюдение за $WATCH_DIR запущено $(date)" | tee -a "$LOG_FILE"
+
+inotifywait -m \
+  -e create \
+  --format '%e %f' "$WATCH_DIR" | while read EVENT FILENAME; do
+
+
+  echo "Событие: $EVENT $FILENAME ($(date))" | tee -a "$LOG_FILE"
+
+  # Обрабатываем только CREATE для ZIP‑файлов без .filepart
+  if [[ "$EVENT! == "CREATE! ]] && \
+     [[ "$FILENAME! == *.zip ]] && \
+     [[ "$FILENAME! != *.filepart ]]; then
+
+    echo "→ Запускаем импорт: $FILENAME" | tee -a "$LOG_FILE"
+    sudo "$IMPORT_SCRIPT" "$WATCH_DIR/$FILENAME" >> "$LOG_FILE" 2>&1
+  else
+    echo "→ Пропускаем: $EVENT $FILENAME" | tee -a "$LOG_FILE"
+  fi
+done
+```
+
+### Как только новый zip-архив будет загружен на сервер, автоматически запустится импорт в базу данных и спользованием shp2pgsql где:
+- -I — создаёт индекс GiST по колонке геометрии (ускоряет пространственные запросы).
+- -s 4326 — задаёт SRID = 4326 (система координат WGS 84, долгота/широта).
+- "$SHP_FILE" — путь к входному шейп‑файлу.
+- "geo.$ARCHIVE_NAME" — имя целевой таблицы в схеме geo
+- PGPASSWORD="" psql -U "$DB_USER" -d "$DB_NAME" -h localhost -p 5432 - Выполняет сгенерированный SQL в PostgreSQL под пользователем postgres
+- tee -a "$LOG_FILE" -  вывод в лог файл $LOG_FILE
+
+### Операция не атомарная, возможно можно улучшить через промежуточный файл sql и выполнение его в транзакции
 
 
 
