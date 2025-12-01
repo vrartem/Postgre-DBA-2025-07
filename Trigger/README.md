@@ -1,4 +1,4 @@
-	### Создаю таблицы и заполняю данными из условия ДЗ
+### Создаю таблицы и заполняю данными из условия ДЗ
 	
 ```
 psql (18.0 (Debian 18.0-1.pgdg13+3), server 17.6 (Debian 17.6-1.pgdg13+1))
@@ -51,7 +51,7 @@ postgres=# CREATE TABLE good_sum_mart
 CREATE TABLE
 ```
 
-	### Создаю триггерную функцию
+### Создаю триггерную функцию
 	
 ```
 -- Создаем функцию для обновления витрины
@@ -118,7 +118,7 @@ END;
 $$ LANGUAGE plpgsql;
 ```
 
-	### Создаю триггер
+### Создаю триггер
 	
 ```
 CREATE TRIGGER sales_trigger
@@ -126,7 +126,7 @@ CREATE TRIGGER sales_trigger
     FOR EACH ROW EXECUTE FUNCTION update_good_sum_mart();
 ```
 
-	### Проверяю вставку
+### Проверяю вставку
 ```
 INSERT INTO sales (good_id, sales_qty) VALUES (1, 10);
 INSERT INTO sales (good_id, sales_qty) VALUES (2, 1);
@@ -139,7 +139,7 @@ postgres=# SELECT * FROM good_sum_mart;
 (2 rows)
 ```
 
-	### Проверяю UPDATE
+### Проверяю UPDATE
 	
 ```
 postgres=# UPDATE sales SET sales_qty = 30 WHERE sales_id = 2;
@@ -162,7 +162,7 @@ postgres=# SELECT * FROM good_sum_mart;
  Спички хозайственные     |        19.50
 ```
 
-	### Проверяю DELETE
+### Проверяю DELETE
 
 ```
 postgres=# SELECT * FROM good_sum_mart;
@@ -203,7 +203,7 @@ postgres=# SELECT * FROM good_sum_mart;
 (2 rows)
 ```
 
-	### Преимущества схемы
+### Преимущества схемы
 	
 - Цены меняются, при такой схеме мы берем фактические значения цен на тот момент времени.
 - Данные уже готовы, вывод отчета будет работать быстро.
