@@ -289,5 +289,24 @@ done
 
 ### Операция не атомарная, возможно можно улучшить через промежуточный файл sql и выполнение его в транзакции
 
+### Пример построения периметра учатска
+
+```
+WITH POINTS AS (
+SELECT (ST_DumpPoints(geom)).geom AS pt -- разбиваем геометрию на точки
+FROM field_1 
+WHERE geom IS NOT NULL)
+
+SELECT ST_ConcaveHull(ST_Collect(pt), 0.1) AS concave_polygon 
+FROM POINTS
+```
+
+### Создание слоев в QGIS для построения карты урожайности
+
+```
+SELECT * FROM "geo"."field_1" where rate < 0.24 -- минимальная
+SELECT * FROM "geo"."field_1" where rate >= 0.24 and rate <= 0.4 -- средняя
+SELECT * FROM "geo"."field_1" where rate > 0.4 -- максимальная
+```
 
 
