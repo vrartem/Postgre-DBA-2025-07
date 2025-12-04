@@ -309,4 +309,116 @@ SELECT * FROM "geo"."field_1" where rate >= 0.24 and rate <= 0.4 -- средня
 SELECT * FROM "geo"."field_1" where rate > 0.4 -- максимальная
 ```
 
+### Подсчет площади
+
+```
+SELECT ST_Area(ST_ConcaveHull(ST_Collect(geom), 0.5)::geography)
+FROM (
+	SELECT (ST_DumpPoints(geom)).geom
+	FROM field_1
+	WHERE geom IS NOT NULL
+);
+
+Результат: 455 280
+ 0.5 - параметр «тугости»
+::geography — приведение геометрии к типу GEOGRAPHY для точных расчетов площади
+
+```
+
+### EXPLAIN ANALYZE
+
+```
+Aggregate  (cost=259832741.66..259832766.68 rows=1 width=8) (actual time=2871.860..2871.879 rows=1 loops=1)
+  ->  Result  (cost=0.00..257265741.04 rows=20536000 width=32) (actual time=259.431..492.618 rows=230526 loops=1)
+        ->  ProjectSet  (cost=0.00..360381.04 rows=20536000 width=32) (actual time=259.396..448.650 rows=230526 loops=1)
+              ->  Seq Scan on field_1  (cost=0.00..898.36 rows=20536 width=227) (actual time=259.035..274.095 rows=20536 loops=1)
+                    Filter: (geom IS NOT NULL)
+Planning Time: 0.679 ms
+JIT:
+  Functions: 7
+  Options: Inlining true, Optimization true, Expressions true, Deforming true
+  Timing: Generation 1.769 ms, Inlining 51.245 ms, Optimization 150.771 ms, Emission 57.193 ms, Total 260.979 ms
+Execution Time: 2874.621 ms
+```
+Пространственный индекс не был использован, выбираются все записи и выполняются преобразования
+
+Пространственный индекс ускоряет запросы с операторами и функциями
+- ST_Contains, ST_Intersects, ST_Within — проверка вложенности/пересечения;
+
+- ST_DWithin — поиск объектов в заданном радиусе;
+
+- ST_Distance — расчёт расстояний (при определённых условиях);
+
+- ST_NearestNeighbor (SDO_NN) — поиск ближайших объектов;
+
+- ST_Envelope, ST_Area, ST_Length и др. — если они используются в условиях
+
+### Подсчет площади пересечений
+
+```
+select
+	SUM(ST_Area(ST_Intersection(a.geom, b.geom)::geography)) as total_intersection
+from field_1 a
+join field_1 b on ST_Intersects(a.geom, b.geom)
+where a.gid + 1 < b.gid
+and ST_Area(ST_Intersection(a.geom, b.geom)::geography) > 6
+and ST_IsValid(a.geom) and ST_IsValid(b.geom)
+```
+
+### EXPLAIN ANALYZE
+
+```
+EXPLAIN ANALYZE
+select
+SUM(ST_Area(ST_Intersection(a.geom, b.geom)::geography)) AS total_intersection_area
+from field_1 a
+join field_1 b on ST_Intersects(a.geom, b.geom)
+where a.gid + 1 < b.gid
+and ST_Area(ST_Intersection(a.geom, b.geom)::geography) > 6
+and ST_IsValid(a.geom)
+AND ST_IsValid(b.geom)
+Aggregate (cost=969071.95..969071.96 rows=1 width=8) (actual time=5531.897..5531.913 rows=1 loops=1)
+-> Nested Loop (cost=0.28..947617.66 rows=858 width=454) (actual time=684.423..5454.399 rows=896 loops=1)
+-> Seq Scan on field_1 a (cost=0.00..257598.36 rows=6845 width=231) (actual time=662.423..1010.792 rows=19404 loops=1)
+Filter: st_isvalid(geom)
+Rows Removed by Filter: 1132
+-> Index Scan using field_1_geom_idx on field_1 b (cost=0.28..100.80 rows=1 width=231) (actual time=0.221..0.227 rows=0 loops=19404)
+Index Cond: (geom && a.geom)
+Filter: (((a.gid + 1) < gid) AND st_isvalid(geom) AND st_intersects(a.geom, geom) AND (st_area((st_intersection(a.geom, geom, '-1'::double precision))::geography, true) > '6'::double precision))
+Rows Removed by Filter: 7
+Planning Time: 36.674 ms
+JIT:
+Functions: 12
+Options: Inlining true, Optimization true, Expressions true, Deforming true
+Timing: Generation 3.176 ms, Inlining 351.308 ms, Optimization 196.677 ms, Emission 114.199 ms, Total 665.360 ms
+Execution Time: 5651.158 ms
+```
+Видим использование Index Scan field_1_geom_idx по geom.
+
+Запрос отработал за приемлимое время.
+
+### Если удалить индекс по geom
+
+```
+Aggregate  (cost=1758616821.18..1758616821.19 rows=1 width=8) (actual time=143967.359..143967.375 rows=1 loops=1)
+  ->  Nested Loop  (cost=0.00..1758595366.89 rows=858 width=454) (actual time=717.974..143885.701 rows=896 loops=1)
+        Join Filter: (((a.gid + 1) < b.gid) AND st_intersects(a.geom, b.geom) AND (st_area((st_intersection(a.geom, b.geom, '-1'::double precision))::geography, true) > '6'::double precision))
+        Rows Removed by Join Filter: 376514320
+        ->  Seq Scan on field_1 a  (cost=0.00..257598.36 rows=6845 width=231) (actual time=412.894..1759.190 rows=19404 loops=1)
+              Filter: st_isvalid(geom)
+              Rows Removed by Filter: 1132
+        ->  Materialize  (cost=0.00..257632.58 rows=6845 width=231) (actual time=0.001..2.241 rows=19404 loops=19404)
+              ->  Seq Scan on field_1 b  (cost=0.00..257598.36 rows=6845 width=231) (actual time=0.135..250.811 rows=19404 loops=1)
+                    Filter: st_isvalid(geom)
+                    Rows Removed by Filter: 1132
+Planning Time: 2.431 ms
+JIT:
+  Functions: 14
+  Options: Inlining true, Optimization true, Expressions true, Deforming true
+  Timing: Generation 5.207 ms, Inlining 49.201 ms, Optimization 251.817 ms, Emission 112.207 ms, Total 418.432 ms
+Execution Time: 143975.786 ms
+```
+
+#### Примерно в 25.5 раз падает эффективность
+
 
