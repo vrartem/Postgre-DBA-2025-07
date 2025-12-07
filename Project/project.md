@@ -421,4 +421,24 @@ Execution Time: 143975.786 ms
 
 #### Примерно в 25.5 раз падает эффективность
 
+### Пример построения линии маршрута
+
+```
+SELECT ST_MakeLine(a.position, b.position) FROM "geo"."positions" a, "geo"."positions" b where a.id + 1 = b.Id
+```
+<img width="406" height="155" alt="image" src="https://github.com/user-attachments/assets/1ac94659-6e13-4c9b-9ad7-b289639cef6a" />
+
+### Подсчет пройденного пути 
+
+```
+with ordered_polygons AS (
+ select  geom,   ROW_NUMBER() over (order by gid) as rn
+ from field_1  where ST_IsValid(geom))
+
+SELECT   SUM(ST_Length(
+ST_MakeLine(ST_Centroid(a.geom), ST_Centroid(b.geom))::geography))
+FROM ordered_polygons a
+JOIN ordered_polygons b ON a.rn + 1 = b.rn;
+```
+
 
